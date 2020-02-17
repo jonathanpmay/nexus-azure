@@ -4,6 +4,7 @@ resource "azuread_application" "app_nexus" {
   name = "${terraform.workspace}"
 }
 
+# Create resource group that will contain all of the app reosurces
 resource "azurerm_resource_group" "rg_nexus" {
   name     = "${terraform.workspace}-rg"
   location = "${var.location}"
@@ -63,10 +64,13 @@ resource "azurerm_key_vault" "kv_nexus" {
   }
 
   access_policy {
-      tenant_id = "${data.azurerm_client_config.current.tenant_id}"
-      object_id = "${azuread_service_principal.sp_ado.id}"
+        tenant_id = "${data.azurerm_client_config.current.tenant_id}"
+        object_id = "${azuread_service_principal.sp_ado.id}"
 
-      secret_permissions = ["get"]
+        secret_permissions = [
+            "list",
+            "get"
+        ]
   }
 }
 
