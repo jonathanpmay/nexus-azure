@@ -138,7 +138,6 @@ resource "null_resource" "ado_service_connection" {
         command = "./create_service_connection.sh"
         environment = {
             AZURE_DEVOPS_EXT_AZURE_RM_SERVICE_PRINCIPAL_KEY = "${azuread_service_principal_password.sp_password_ado.value}"
-            AZDO_ORG_SERVICE_URL                            = "${var.azdo_url}"
             TF_SP_ADO_ID                                    = "${azuread_service_principal.sp_ado.application_id}"
             TF_SUBSCRIPTION_ID                              = "${data.azurerm_client_config.current.subscription_id}"
             TF_TENANT_ID                                    = "${data.azurerm_client_config.current.tenant_id}"
