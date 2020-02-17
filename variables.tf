@@ -1,7 +1,7 @@
 variable "location" {
-  default = "East US"
+  default = ""
 }
 
 variable "azdo_url" {
-    default = "https://dev.azure.com/jonathanpmay"
+    default = ""
 }
