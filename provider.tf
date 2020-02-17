@@ -13,7 +13,7 @@ provider "random" {
 terraform {
   backend "azurerm" {
     resource_group_name = "terraform-backend"
-    storage_account_name = "jpmtfmycodepipeline"
+    storage_account_name = "tfbackend1"
     container_name = "tfstate"
     key = "nexus.terraform.tfstate"
   }
