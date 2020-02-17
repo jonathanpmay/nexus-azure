@@ -1,7 +1,3 @@
-variable "app_name" {
-  default = "HelloWorld"
-}
-
 variable "location" {
   default = "East US"
 }

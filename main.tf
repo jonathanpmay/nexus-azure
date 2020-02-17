@@ -1,11 +1,11 @@
 data "azurerm_client_config" "current" {}
 
 resource "azuread_application" "app_nexus" {
-  name = "${var.app_name}"
+  name = "${terraform.workspace}"
 }
 
 resource "azurerm_resource_group" "rg_nexus" {
-  name     = "${var.app_name}-rg"
+  name     = "${terraform.workspace}-rg"
   location = "${var.location}"
 }
 
@@ -29,7 +29,7 @@ resource "azuread_service_principal_password" "sp_password_ado" {
 
 # Create the storage account that will store Terraform state
 resource "azurerm_storage_account" "sa_tfstate" {
-  name                     = "jpmnexus${lower(var.app_name)}"
+  name                     = "${lower(terraform.workspace)}tfstatesa"
   resource_group_name      = "${azurerm_resource_group.rg_nexus.name}"
   location                 = "${azurerm_resource_group.rg_nexus.location}"
   account_tier             = "Standard"
@@ -44,7 +44,7 @@ resource "azurerm_storage_container" "sacontainer_tfstate" {
 
 # Create the key vault and store the SA and SP secrets
 resource "azurerm_key_vault" "kv_nexus" {
-  name                = "jpm-${lower(var.app_name)}-kv"
+  name                = "nexus-${lower(terraform.workspace)}-kv"
   location            = "${azurerm_resource_group.rg_nexus.location}"
   resource_group_name = "${azurerm_resource_group.rg_nexus.name}"
   tenant_id           = "${data.azurerm_client_config.current.tenant_id}"
@@ -123,7 +123,7 @@ resource "azurerm_role_assignment" "role_assignment_ado_rg" {
 # Depends on the environment variables AZDO_PERSONAL_ACCESS_TOKEN and AZDO_ORG_SERVICE_URL
 resource "azuredevops_project" "ado_project" {
     depends_on         = ["azuread_service_principal.sp_ado"]
-    project_name       = "${var.app_name}"
+    project_name       = "${terraform.workspace}"
     description        = "enter description"
     visibility         = "private"
     version_control    = "Git"
@@ -139,10 +139,10 @@ resource "null_resource" "ado_service_connection" {
         environment = {
             AZURE_DEVOPS_EXT_AZURE_RM_SERVICE_PRINCIPAL_KEY = "${azuread_service_principal_password.sp_password_ado.value}"
             AZDO_ORG_SERVICE_URL                            = "${var.azdo_url}"
-            TF_SP_ADO_                                      = "${azuread_service_principal.sp_ado.application_id}"
+            TF_SP_ADO_ID                                    = "${azuread_service_principal.sp_ado.application_id}"
             TF_SUBSCRIPTION_ID                              = "${data.azurerm_client_config.current.subscription_id}"
             TF_TENANT_ID                                    = "${data.azurerm_client_config.current.tenant_id}"
-            TF_APP_NAME                                     = "${var.app_name}"
+            TF_APP_NAME                                     = "${terraform.workspace}"
         }
     }
 }
