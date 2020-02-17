@@ -4,7 +4,7 @@
 function delete_service_connection {
     # Search for existing service connections
     echo "[+] Searching for existing service connection..."
-    SERVICE_ENDPOINT_ID=$(az devops service-endpoint list --organization $AZDO_ORG_SERVICE_URL --project $TF_APP_NAME | jq -r '.[] | select( .type == "azurerm") | .id'get_service_connection)
+    SERVICE_ENDPOINT_ID=$(az devops service-endpoint list --organization $AZDO_ORG_SERVICE_URL --project $TF_APP_NAME | jq -r '.[] | select( .type == "azurerm") | .id')
 
     if [ ! -z "$SERVICE_ENDPOINT_ID" ]
     then
