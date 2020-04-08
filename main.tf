@@ -6,7 +6,7 @@ resource "azuread_application" "app_nexus" {
 
 # Create resource group that will contain all of the app reosurces
 resource "azurerm_resource_group" "rg_nexus" {
-  name     = "${terraform.workspace}-rg"
+  name     = "${terraform.workspace}-tfstate-rg"
   location = "${var.location}"
 }
 
@@ -25,12 +25,12 @@ resource "random_password" "password_sp_ado" {
 resource "azuread_service_principal_password" "sp_password_ado" {
   service_principal_id = "${azuread_service_principal.sp_ado.id}"
   value                = "${random_password.password_sp_ado.result}"
-  end_date             = "3000-01-01T0:00:00Z"
+  end_date             = "3000-01-01T00:00:00Z"
 }
 
 # Create the storage account that will store Terraform state
 resource "azurerm_storage_account" "sa_tfstate" {
-  name                     = "${lower(terraform.workspace)}tfstatesa"
+  name                     = "${lower(replace(terraform.workspace, "-", ""))}tfstatesa"
   resource_group_name      = "${azurerm_resource_group.rg_nexus.name}"
   location                 = "${azurerm_resource_group.rg_nexus.location}"
   account_tier             = "Standard"
@@ -38,8 +38,8 @@ resource "azurerm_storage_account" "sa_tfstate" {
 }
 
 resource "azurerm_storage_container" "sacontainer_tfstate" {
-  name = "tfstate"
-  storage_account_name = "${azurerm_storage_account.sa_tfstate.name}"
+  name                  = "tfstate"
+  storage_account_name  = "${azurerm_storage_account.sa_tfstate.name}"
   container_access_type = "blob"
 }
 
@@ -52,25 +52,25 @@ resource "azurerm_key_vault" "kv_nexus" {
   sku_name            = "Standard"
 
   access_policy {
-      tenant_id = "${data.azurerm_client_config.current.tenant_id}"
-      object_id = "${data.azurerm_client_config.current.object_id}"
+    tenant_id = "${data.azurerm_client_config.current.tenant_id}"
+    object_id = "${data.azurerm_client_config.current.object_id}"
 
-      secret_permissions = [
-        "list",
-        "get",
-        "set",
-        "delete"
-      ]
+    secret_permissions = [
+      "list",
+      "get",
+      "set",
+      "delete"
+    ]
   }
 
   access_policy {
-        tenant_id = "${data.azurerm_client_config.current.tenant_id}"
-        object_id = "${azuread_service_principal.sp_ado.id}"
+    tenant_id = "${data.azurerm_client_config.current.tenant_id}"
+    object_id = "${azuread_service_principal.sp_ado.id}"
 
-        secret_permissions = [
-            "list",
-            "get"
-        ]
+    secret_permissions = [
+      "list",
+      "get"
+    ]
   }
 }
 
@@ -117,35 +117,49 @@ resource "azurerm_role_assignment" "role_assignment_ado_sa" {
   role_definition_name = "Contributor"
 }
 
-resource "azurerm_role_assignment" "role_assignment_ado_rg" {
-  principal_id         = "${azuread_service_principal.sp_ado.id}"
-  scope                = "${azurerm_resource_group.rg_nexus.id}"
-  role_definition_name = "Contributor"
+# Grant ADO access to create and manage resource groups
+resource "azurerm_role_definition" "role_definition_ado_resourcegroup" {
+  name        = "${terraform.workspace}"
+  scope       = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+  description = "Custom role for ${terraform.workspace}"
+  permissions {
+    actions = ["Microsoft.Resources/subscriptions/resourceGroups/*"]
+  }
+
+  assignable_scopes = [
+    "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+  ]
+}
+
+resource "azurerm_role_assignment" "role_assignment_ado_resourcegroup" {
+  principal_id       = "${azuread_service_principal.sp_ado.id}"
+  scope              = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+  role_definition_id = "${azurerm_role_definition.role_definition_ado_resourcegroup.id}"
 }
 
 # Create the Azure DevOps Project
 # Depends on the environment variables AZDO_PERSONAL_ACCESS_TOKEN and AZDO_ORG_SERVICE_URL
 resource "azuredevops_project" "ado_project" {
-    depends_on         = ["azuread_service_principal.sp_ado"]
-    project_name       = "${terraform.workspace}"
-    description        = "enter description"
-    visibility         = "private"
-    version_control    = "Git"
-    work_item_template = "Agile"
+  depends_on         = ["azuread_service_principal.sp_ado"]
+  project_name       = "${terraform.workspace}"
+  description        = "enter description"
+  visibility         = "private"
+  version_control    = "Git"
+  work_item_template = "Agile"
 }
 
 # Create the AzDO Service Connection
 resource "null_resource" "ado_service_connection" {
-    depends_on = ["azuredevops_project.ado_project"]
+  depends_on = ["azuredevops_project.ado_project"]
 
-    provisioner "local-exec" {
-        command = "./create_service_connection.sh"
-        environment = {
-            AZURE_DEVOPS_EXT_AZURE_RM_SERVICE_PRINCIPAL_KEY = "${azuread_service_principal_password.sp_password_ado.value}"
-            TF_SP_ADO_ID                                    = "${azuread_service_principal.sp_ado.application_id}"
-            TF_SUBSCRIPTION_ID                              = "${data.azurerm_client_config.current.subscription_id}"
-            TF_TENANT_ID                                    = "${data.azurerm_client_config.current.tenant_id}"
-            TF_APP_NAME                                     = "${terraform.workspace}"
-        }
+  provisioner "local-exec" {
+    command = "./create_service_connection.sh"
+    environment = {
+      AZURE_DEVOPS_EXT_AZURE_RM_SERVICE_PRINCIPAL_KEY = "${azuread_service_principal_password.sp_password_ado.value}"
+      TF_SP_ADO_ID                                    = "${azuread_service_principal.sp_ado.application_id}"
+      TF_SUBSCRIPTION_ID                              = "${data.azurerm_client_config.current.subscription_id}"
+      TF_TENANT_ID                                    = "${data.azurerm_client_config.current.tenant_id}"
+      TF_APP_NAME                                     = "${terraform.workspace}"
     }
+  }
 }

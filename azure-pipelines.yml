@@ -11,6 +11,7 @@ variables:
 
 trigger:
   - master
+  - features/*
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -22,7 +23,7 @@ steps:
 - task: AzureKeyVault@1
   inputs:
     azureSubscription: $(appName)
-    KeyVaultName: 'nexus-helloworld-kv'
+    KeyVaultName: 'nexus-$(appName)-kv'
   displayName: 'Get key vault secrets as pipeline variables'
 
 - task: AzureCLI@1
@@ -32,21 +33,38 @@ steps:
     inlineScript: 'terraform version'
   displayName: "Terraform Version"
 
-- script: |
-    cd $(System.DefaultWorkingDirectory)/tf-infra-provision
-
+- script: |    
     echo '#######Initializing Credentials########'
     export ARM_CLIENT_ID=$(sp-ado-client-id) \
       ARM_CLIENT_SECRET=$(sp-ado-client-secret) \
       ARM_SUBSCRIPTION_ID=$(sp-ado-subscription-id) \
       ARM_TENANT_ID=$(sp-ado-tenant-id)
-    
+    echo '[+] Exported credentials'
+
     echo '#######Terraform Init########'
-    terraform init -backend-config="storage_account_name=$(tfBackendStorageAccountName)" -backend-config="container_name=$(tfBackendStorageContainerName)" -backend-config="access_key=$(sa-tfstate)" -backend-config="key=$(tfBackendFileName)"
-    
+    terraform init -backend-config="storage_account_name=$(tfBackendStorageAccountName)" \
+      -backend-config="container_name=$(tfBackendStorageContainerName)" \
+      -backend-config="access_key=$(sa-tfstate)" \
+      -backend-config="key=$(tfBackendFileName)"
+
+    echo '#######Switching Terraform Workspaces#######'
+    # Remove 'release/' from the branch name and replace special characters with hypens
+    BRANCH_NAME=$(Build.SourceBranchName)
+    echo "[+] Current branch is $BRANCH_NAME"
+
+    # If branch is not master, switch to its workspace
+    if [ $BRANCH_NAME != 'master' ]; then
+      # If workspace does not exist, create it
+      WORKSPACE_NAME=$(echo ${BRANCH_NAME/'release/'/''} | tr -c '[:alnum:]\n\r' '-')
+      echo "[+] Swiching to Workspace $WORKSPACE_NAME"
+      terraform workspace select $WORKSPACE_NAME || terraform workspace new $WORKSPACE_NAME
+    else
+      echo "[+] Master branch found. Workspace will remain 'default'"
+    fi
+
     echo '#######Terraform Plan########'
     terraform plan -out="out.plan"
     
     echo '#######Terraform Apply########'
     terraform apply out.plan
-  displayName: 'Terraform Init, Plan and Apply '
+  displayName: 'Terraform Init, Workspace, Plan and Apply '
