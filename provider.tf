@@ -10,6 +10,8 @@ provider "random" {
   version = "2.2.1"
 }
 
+provider "azuredevops" {}
+
 terraform {
   backend "azurerm" {
     resource_group_name  = "terraform-backend"

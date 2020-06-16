@@ -3,7 +3,7 @@ Creates an Azure DevOps code pipeline
 
 # Dependencies
 - Two environment variables must be defined (AZDO_PERSONAL_ACCESS_TOKEN and AZDO_ORG_SERVICE_URL)
-- Azure DevOps Terraform extension must be installed
+- Azure DevOps Terraform extension must be installed (https://github.com/microsoft/terraform-provider-azuredevops)
 - Storage account created to store the Terraform backend
 
 # Context
