@@ -33,6 +33,7 @@ resource "azurerm_storage_account" "sa_tfstate" {
   name                     = "${lower(replace(terraform.workspace, "-", ""))}tfstatesa"
   resource_group_name      = azurerm_resource_group.rg_nexus.name
   location                 = azurerm_resource_group.rg_nexus.location
+  account_kind             = "StorageV2"
   account_tier             = "Standard"
   account_replication_type = "LRS"
 }
