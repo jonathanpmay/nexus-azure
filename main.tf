@@ -105,6 +105,13 @@ resource "azurerm_key_vault_secret" "kv_secret_sp_subscription_id" {
   key_vault_id = azurerm_key_vault.kv_nexus.id
 }
 
+# Store the pipeline service principal ID 
+resource "azurerm_key_vault_secret" "kv_secret_sp_object_id" {
+  name         = "sp-ado-object-id"
+  value        = azuread_service_principal.sp_ado.object_id
+  key_vault_id = azurerm_key_vault.kv_nexus.id
+}
+
 # Grant ADO access to the Key Vault and Storage Account
 resource "azurerm_role_assignment" "role_assignment_ado_keyvault" {
   principal_id         = azuread_service_principal.sp_ado.id
@@ -128,6 +135,7 @@ resource "azurerm_role_definition" "role_definition_ado_resourcegroup" {
       "Microsoft.Insights/components/*",
       "Microsoft.KeyVault/vaults/*",
       "Microsoft.Resources/subscriptions/resourceGroups/*",
+      "Microsoft.Security/advancedThreatProtectionSettings/read",
       "Microsoft.Storage/storageAccounts/*",
       "Microsoft.Web/serverfarms/*",
       "Microsoft.Web/sites/*"
