@@ -124,7 +124,14 @@ resource "azurerm_role_definition" "role_definition_ado_resourcegroup" {
   scope       = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
   description = "Custom role for ${terraform.workspace}"
   permissions {
-    actions = ["Microsoft.Resources/subscriptions/resourceGroups/*"]
+    actions = [
+      "Microsoft.Insights/components/*",
+      "Microsoft.KeyVault/vaults/*",
+      "Microsoft.Resources/subscriptions/resourceGroups/*",
+      "Microsoft.Storage/storageAccounts/*",
+      "Microsoft.Web/serverfarms/*",
+      "Microsoft.Web/sites/*"
+    ]
   }
 
   assignable_scopes = [
@@ -151,7 +158,7 @@ resource "azuredevops_project" "ado_project" {
 
 # Create the AzDO Service Connection
 resource "null_resource" "ado_service_connection" {
-  depends_on = ["azuredevops_project.ado_project"]
+  depends_on = [azuredevops_project.ado_project]
 
   provisioner "local-exec" {
     command = "./create_service_connection.sh"
