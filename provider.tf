@@ -10,7 +10,13 @@ provider "random" {
   version = "2.2.1"
 }
 
-provider "azuredevops" {}
+provider "azuredevops" {
+  version = "~>0.1"
+}
+
+provider "null" {
+  version = "~>2.1"
+}
 
 terraform {
   backend "azurerm" {

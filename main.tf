@@ -30,7 +30,7 @@ resource "azuread_service_principal_password" "sp_password_ado" {
 
 # Create the storage account that will store Terraform state
 resource "azurerm_storage_account" "sa_tfstate" {
-  name                     = "${lower(replace(terraform.workspace, "-", ""))}tfstatesa"
+  name                     = "${substr(lower(replace(terraform.workspace, "-", "")), 0, 15)}tfstatesa"
   resource_group_name      = azurerm_resource_group.rg_nexus.name
   location                 = azurerm_resource_group.rg_nexus.location
   account_kind             = "StorageV2"
@@ -46,7 +46,7 @@ resource "azurerm_storage_container" "sacontainer_tfstate" {
 
 # Create the key vault and store the SA and SP secrets
 resource "azurerm_key_vault" "kv_nexus" {
-  name                = "nexus-${lower(terraform.workspace)}-kv"
+  name                = "nexus-${substr(lower(replace(terraform.workspace, "-", "")), 0, 15)}-kv"
   location            = azurerm_resource_group.rg_nexus.location
   resource_group_name = azurerm_resource_group.rg_nexus.name
   tenant_id           = data.azurerm_client_config.current.tenant_id

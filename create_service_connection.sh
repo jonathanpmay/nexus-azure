@@ -26,7 +26,7 @@ function create_service_connection {
         --name $TF_APP_NAME \
         --azure-rm-subscription-name $SUBSCRIPTION_NAME \
         --organization $AZDO_ORG_SERVICE_URL \
-        --project $TF_APP_NAME
+        --project "$TF_APP_NAME"
 }
 
 delete_service_connection
